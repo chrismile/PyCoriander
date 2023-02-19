@@ -5,7 +5,7 @@
 *.slo
 *.lo
 *.o
-*.obj
+#*.obj Commented out, as project uses .obj model files
 
 # Precompiled Headers
 *.gch
@@ -30,3 +30,35 @@
 *.exe
 *.out
 *.app
+
+# CMake
+CMakeCache.txt
+CMakeFiles
+CMakeScripts
+Makefile
+cmake_install.cmake
+install_manifest.txt
+compile_commands.json
+CTestTestfile.cmake
+
+# VS Code
+.vscode/*
+/Debug/*
+
+# Eclipse
+.cproject
+.project
+.settings/*
+
+# Doxygen
+docs/html/*
+docs/latex/*
+
+# CLion
+.idea/*
+cmake-build-*/
+
+# setuptools
+build*/
+*egg-info*
+dist/*
