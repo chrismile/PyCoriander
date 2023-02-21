@@ -46,7 +46,7 @@ torch::Tensor mutualInformationKraskov(torch::Tensor referenceTensor, torch::Ten
 
 torch::Tensor mutualInformationKraskovCpu(torch::Tensor referenceTensor, torch::Tensor queryTensor, int64_t k) {
     if (referenceTensor.sizes().size() > 2) {
-        throw std::runtime_error("Error in mutualInformationKraskovCpu: referenceTensor.sizes().size() > 1.");
+        throw std::runtime_error("Error in mutualInformationKraskovCpu: referenceTensor.sizes().size() > 2.");
     }
     if (queryTensor.sizes().size() > 2) {
         throw std::runtime_error("Error in mutualInformationKraskovCpu: queryTensor.sizes().size() > 2.");
@@ -67,8 +67,8 @@ torch::Tensor mutualInformationKraskovCpu(torch::Tensor referenceTensor, torch::
     auto referenceData = referenceTensor.data_ptr<float>();
     auto queryData = queryTensor.data_ptr<float>();
     auto outputAccessor = outputTensor.accessor<float, 1>();
-    auto referenceStride = referenceTensor.sizes().size() == 1 ? 0 : uint32_t(referenceTensor.stride(0));
-    auto queryStride = queryTensor.sizes().size() == 1 ? 0 : uint32_t(queryTensor.stride(0));
+    auto referenceStride = Mr == 1 ? 0 : uint32_t(referenceTensor.stride(0));
+    auto queryStride = Mq == 1 ? 0 : uint32_t(queryTensor.stride(0));
 
 #ifdef _OPENMP
     #pragma omp parallel default(none) shared(M, N, k, referenceData, referenceStride, queryData, queryStride, outputAccessor)

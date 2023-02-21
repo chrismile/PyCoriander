@@ -60,7 +60,7 @@ void pycorianderCleanup() {
 
 torch::Tensor mutualInformationKraskovCuda(torch::Tensor referenceTensor, torch::Tensor queryTensor, int64_t k) {
     if (referenceTensor.sizes().size() > 2) {
-        throw std::runtime_error("Error in mutualInformationKraskovCuda: referenceTensor.sizes().size() > 1.");
+        throw std::runtime_error("Error in mutualInformationKraskovCuda: referenceTensor.sizes().size() > 2.");
     }
     if (queryTensor.sizes().size() > 2) {
         throw std::runtime_error("Error in mutualInformationKraskovCuda: queryTensor.sizes().size() > 2.");
@@ -168,8 +168,8 @@ torch::Tensor mutualInformationKraskovCuda(torch::Tensor referenceTensor, torch:
     auto referenceArray = reinterpret_cast<CUdeviceptr>(referenceTensor.data_ptr());
     auto queryArray = reinterpret_cast<CUdeviceptr>(queryTensor.data_ptr());
     auto miArray = reinterpret_cast<CUdeviceptr>(outputTensor.data_ptr());
-    auto referenceStride = referenceTensor.sizes().size() == 1 ? 0 : uint32_t(referenceTensor.stride(0));
-    auto queryStride = queryTensor.sizes().size() == 1 ? 0 : uint32_t(queryTensor.stride(0));
+    auto referenceStride = Mr == 1 ? 0 : uint32_t(referenceTensor.stride(0));
+    auto queryStride = Mq == 1 ? 0 : uint32_t(queryTensor.stride(0));
     auto batchSize = uint32_t(M);
     if (batchCount == 1) {
         auto batchOffset = uint32_t(0);
