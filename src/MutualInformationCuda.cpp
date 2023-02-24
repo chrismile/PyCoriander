@@ -111,7 +111,7 @@ torch::Tensor mutualInformationKraskovCuda(torch::Tensor referenceTensor, torch:
             size_t logSize = 0;
             checkNvrtcResult(nvrtcGetProgramLogSize(prog, &logSize), "Error in nvrtcGetProgramLogSize: ");
             char* log = new char[logSize];
-            checkNvrtcResult(nvrtcGetProgramLog (prog, log), "Error in nvrtcGetProgramLog: ");
+            checkNvrtcResult(nvrtcGetProgramLog(prog, log), "Error in nvrtcGetProgramLog: ");
             std::cerr << "NVRTC log:" << std::endl << log << std::endl;
             delete[] log;
             checkNvrtcResult(nvrtcDestroyProgram(&prog), "Error in nvrtcDestroyProgram: ");
