@@ -50,7 +50,7 @@ static KernelCache* kernelCache = nullptr;
 
 void pycorianderCleanup() {
     if (kernelCache) {
-        delete[] kernelCache;
+        delete kernelCache;
         kernelCache = nullptr;
     }
     if (getIsCudaDeviceApiFunctionTableInitialized()) {
@@ -125,7 +125,7 @@ torch::Tensor mutualInformationKraskovCuda(torch::Tensor referenceTensor, torch:
         checkNvrtcResult(nvrtcDestroyProgram(&prog), "Error in nvrtcDestroyProgram: ");
 
         if (kernelCache) {
-            delete[] kernelCache;
+            delete kernelCache;
         }
         kernelCache = new KernelCache;
         kernelCache->preprocessorDefines = preprocessorDefines;
