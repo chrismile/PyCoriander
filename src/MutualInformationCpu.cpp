@@ -31,7 +31,9 @@
 
 PYBIND11_MODULE(pycoriander, m) {
     m.def("_cleanup", pycorianderCleanup, "Cleanup correlation estimator data");
-    m.def("mutual_information_kraskov", mutualInformationKraskov, "Mutual information using Kraskov estimator");
+    m.def("mutual_information_kraskov", mutualInformationKraskov,
+          "Computes the mutual information of the Torch tensors X and Y using the Kraskov estimator.",
+          py::arg("X"), py::arg("Y"), py::arg("k"));
 }
 
 torch::Tensor mutualInformationKraskov(torch::Tensor referenceTensor, torch::Tensor queryTensor, int64_t k) {
