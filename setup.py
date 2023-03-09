@@ -1,3 +1,4 @@
+import sys
 from setuptools import setup
 from setuptools.command.egg_info import egg_info
 from torch.utils.cpp_extension import BuildExtension, CUDAExtension, IS_WINDOWS, IS_MACOS
@@ -32,6 +33,9 @@ setup(
             'src/MutualInformationCpu.cpp',
             'src/MutualInformationCuda.cpp',
         ], libraries=['nvrtc'], extra_compile_args=extra_compile_args)
+    ],
+    data_files=[
+        ( '.', ['src/pycoriander.pyi'] )
     ],
     cmdclass={
         'build_ext': BuildExtension,
