@@ -87,7 +87,7 @@ torch::Tensor mutualInformationKraskovCuda(torch::Tensor referenceTensor, torch:
 
     std::map<std::string, std::string> preprocessorDefines;
     preprocessorDefines.insert(std::make_pair(
-            "ENSEMBLE_MEMBER_COUNT", std::to_string(N)));
+            "MEMBER_COUNT", std::to_string(N)));
     auto maxBinaryTreeLevels = uint32_t(std::ceil(std::log2(N + 1)));
     preprocessorDefines.insert(std::make_pair(
             "MAX_STACK_SIZE_BUILD", std::to_string(2 * maxBinaryTreeLevels)));
