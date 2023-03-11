@@ -29,19 +29,12 @@
 #ifndef PYCORIANDER_MUTUALINFORMATION_HPP
 #define PYCORIANDER_MUTUALINFORMATION_HPP
 
+#include "KdTreed.hpp"
+
 template<class Real>
 float computeMutualInformationBinned(
         const float* referenceValues, const float* queryValues, int numBins, int es,
         Real* histogram0, Real* histogram1, Real* histogram2d);
-
-template<class Real>
-float computeMutualInformationKraskov(
-        const float* referenceValues, const float* queryValues, int k, int es);
-
-template<class Real>
-float computeMutualInformationKraskov2(
-        const float* referenceValues, const float* queryValues, int k, int es);
-
 extern template
 float computeMutualInformationBinned<float>(
         const float* referenceValues, const float* queryValues, int numBins, int es,
@@ -51,18 +44,42 @@ float computeMutualInformationBinned<double>(
         const float* referenceValues, const float* queryValues, int numBins, int es,
         double* histogram0, double* histogram1, double* histogram2d);
 
+template<class Real>
+struct KraskovEstimatorCache {
+    // K-d-tree computations.
+    std::vector<math::vec<2, Real>> points;
+    std::vector<math::vec<2, Real>> pointsCopy;
+    KdTreed<Real, 2, DistanceMeasure::CHEBYSHEV> kdTree2d;
+    std::vector<Real> kthNeighborDistances;
+    std::vector<Real> nearestNeighborDistances;
+
+    // 2nd estimator.
+    std::vector<Real> kthNeighborDistancesRef;
+    std::vector<Real> kthNeighborDistancesQuery;
+    std::vector<math::vec<2, Real>> nearestNeighbors;
+
+    // Average digamma computation.
+    std::vector<Real> baseArray;
+    std::vector<Real> sortedArray;
+};
+
+template<class Real>
+float computeMutualInformationKraskov(
+        const float* referenceValues, const float* queryValues, int k, int es, KraskovEstimatorCache<Real>& cache);
+template<class Real>
+float computeMutualInformationKraskov2(
+        const float* referenceValues, const float* queryValues, int k, int es, KraskovEstimatorCache<Real>& cache);
 extern template
 float computeMutualInformationKraskov<float>(
-        const float* referenceValues, const float* queryValues, int k, int es);
+        const float* referenceValues, const float* queryValues, int k, int es, KraskovEstimatorCache<float>& cache);
 extern template
 float computeMutualInformationKraskov<double>(
-        const float* referenceValues, const float* queryValues, int k, int es);
-
+        const float* referenceValues, const float* queryValues, int k, int es, KraskovEstimatorCache<double>& cache);
 extern template
 float computeMutualInformationKraskov2<float>(
-        const float* referenceValues, const float* queryValues, int k, int es);
+        const float* referenceValues, const float* queryValues, int k, int es, KraskovEstimatorCache<float>& cache);
 extern template
 float computeMutualInformationKraskov2<double>(
-        const float* referenceValues, const float* queryValues, int k, int es);
+        const float* referenceValues, const float* queryValues, int k, int es, KraskovEstimatorCache<double>& cache);
 
 #endif //PYCORIANDER_MUTUALINFORMATION_HPP

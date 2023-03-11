@@ -29,9 +29,10 @@ setup(
             'src/Random/Random.cpp',
             'src/Random/Xorshift.cpp',
             'src/CudaHelpers.cpp',
+            'src/Correlation.cpp',
             'src/MutualInformation.cpp',
-            'src/MutualInformationCpu.cpp',
-            'src/MutualInformationCuda.cpp',
+            'src/PyCorianderCpu.cpp',
+            'src/PyCorianderCuda.cpp',
         ], libraries=['nvrtc'], extra_compile_args=extra_compile_args)
     ],
     data_files=[

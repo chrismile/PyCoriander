@@ -2,8 +2,12 @@
 
 This library implements correlation metrics using OpenMP on the CPU and CUDA on the GPU for use in PyTorch.
 
-Currently, only one correlation metric is supported, i.e., the mutual information estimator as introduced in
-
+Currently, the computation of the following correlation metrics is supported.
+- Pearson correlation coefficient.
+- Spearman rank correlation coefficient.
+- Kendall rank correlation coefficient (aka. Kendall's tau).
+- A binned mutual information estimator.
+- The mutual information estimator by Kraskov et al. as introduced in
 > Alexander Kraskov, Harald Stögbauer, and Peter Grassberger: Estimating mutual information.
 Phys. Rev. E, 69:066138, June 2004, https://journals.aps.org/pre/abstract/10.1103/PhysRevE.69.066138
 

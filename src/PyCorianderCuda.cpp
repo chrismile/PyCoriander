@@ -32,7 +32,11 @@
 #include <nvrtc.h>
 
 #include "CudaHelpers.hpp"
-#include "MutualInformationCpu.hpp"
+#include "PyCoriander.hpp"
+#include "PearsonCorrelationHeader.hpp"
+#include "SpearmanRankCorrelationHeader.hpp"
+#include "KendallRankCorrelationHeader.hpp"
+#include "MutualInformationBinnedHeader.hpp"
 #include "MutualInformationKraskovHeader.hpp"
 
 struct KernelCache {
@@ -41,12 +45,14 @@ struct KernelCache {
             checkCUresult(g_cudaDeviceApiFunctionTable.cuModuleUnload(cumodule), "Error in cuModuleUnload: ");
         }
     }
+    CorrelationMeasureType correlationMeasureType = CorrelationMeasureType::MUTUAL_INFORMATION_KRASKOV;
     std::map<std::string, std::string> preprocessorDefines;
     CUmodule cumodule{};
     CUfunction kernel{};
 };
 
 static KernelCache* kernelCache = nullptr;
+constexpr size_t BLOCK_SIZE_REDUCTION = 256;
 
 void pycorianderCleanup() {
     if (kernelCache) {
@@ -58,7 +64,9 @@ void pycorianderCleanup() {
     }
 }
 
-torch::Tensor mutualInformationKraskovCuda(torch::Tensor referenceTensor, torch::Tensor queryTensor, int64_t k) {
+torch::Tensor computeCorrelationCuda(
+        torch::Tensor referenceTensor, torch::Tensor queryTensor, CorrelationMeasureType correlationMeasureType,
+        int numBins, int k, float referenceMin, float referenceMax, float queryMin, float queryMax) {
     if (referenceTensor.sizes().size() > 2) {
         throw std::runtime_error("Error in mutualInformationKraskovCuda: referenceTensor.sizes().size() > 2.");
     }
@@ -88,24 +96,57 @@ torch::Tensor mutualInformationKraskovCuda(torch::Tensor referenceTensor, torch:
     std::map<std::string, std::string> preprocessorDefines;
     preprocessorDefines.insert(std::make_pair(
             "MEMBER_COUNT", std::to_string(N)));
-    auto maxBinaryTreeLevels = uint32_t(std::ceil(std::log2(N + 1)));
-    preprocessorDefines.insert(std::make_pair(
-            "MAX_STACK_SIZE_BUILD", std::to_string(2 * maxBinaryTreeLevels)));
-    preprocessorDefines.insert(std::make_pair(
-            "MAX_STACK_SIZE_KN", std::to_string(maxBinaryTreeLevels)));
-    preprocessorDefines.insert(std::make_pair("k", std::to_string(k)));
+    if (correlationMeasureType == CorrelationMeasureType::KENDALL) {
+        auto maxStackSize = uint32_t(std::ceil(std::log2(N))) + 1;
+        preprocessorDefines.insert(std::make_pair(
+                "MAX_STACK_SIZE", std::to_string(maxStackSize)));
+    } else if (correlationMeasureType == CorrelationMeasureType::MUTUAL_INFORMATION_BINNED) {
+        preprocessorDefines.insert(std::make_pair(
+                "numBins", std::to_string(numBins)));
+    } else if (correlationMeasureType == CorrelationMeasureType::MUTUAL_INFORMATION_KRASKOV) {
+        auto maxBinaryTreeLevels = uint32_t(std::ceil(std::log2(N + 1)));
+        preprocessorDefines.insert(std::make_pair(
+                "MAX_STACK_SIZE_BUILD", std::to_string(2 * maxBinaryTreeLevels)));
+        preprocessorDefines.insert(std::make_pair(
+                "MAX_STACK_SIZE_KN", std::to_string(maxBinaryTreeLevels)));
+        preprocessorDefines.insert(std::make_pair("k", std::to_string(k)));
+    }
 
-    if (!kernelCache || kernelCache->preprocessorDefines != preprocessorDefines) {
+    if (!kernelCache || kernelCache->preprocessorDefines != preprocessorDefines
+            || kernelCache->correlationMeasureType != correlationMeasureType) {
         std::string code;
         for (const auto& entry : preprocessorDefines) {
             code += std::string("#define ") + entry.first + " " + entry.second + "\n";
         }
         code += "#line 1\n";
-        code += std::string(reinterpret_cast<const char*>(MutualInformationKraskov_cu), MutualInformationKraskov_cu_len);
+
+        const char* sourceFileName = nullptr;
+        const char* kernelName = nullptr;
+        if (correlationMeasureType == CorrelationMeasureType::PEARSON) {
+            sourceFileName = "PearsonCorrelation.cu";
+            kernelName = "pearsonCorrelation";
+            code += std::string(reinterpret_cast<const char*>(PearsonCorrelation_cu), PearsonCorrelation_cu_len);
+        } else if (correlationMeasureType == CorrelationMeasureType::SPEARMAN) {
+            sourceFileName = "SpearmanRankCorrelation.cu";
+            kernelName = "spearmanRankCorrelation";
+            code += std::string(reinterpret_cast<const char*>(SpearmanRankCorrelation_cu), SpearmanRankCorrelation_cu_len);
+        } else if (correlationMeasureType == CorrelationMeasureType::KENDALL) {
+            sourceFileName = "KendallRankCorrelation.cu";
+            kernelName = "kendallRankCorrelation";
+            code += std::string(reinterpret_cast<const char*>(KendallRankCorrelation_cu), KendallRankCorrelation_cu_len);
+        } else if (correlationMeasureType == CorrelationMeasureType::MUTUAL_INFORMATION_BINNED) {
+            sourceFileName = "MutualInformationBinned.cu";
+            kernelName = "mutualInformationBinned";
+            code += std::string(reinterpret_cast<const char*>(MutualInformationBinned_cu), MutualInformationBinned_cu_len);
+        } else if (correlationMeasureType == CorrelationMeasureType::MUTUAL_INFORMATION_KRASKOV) {
+            sourceFileName = "MutualInformationKraskov.cu";
+            kernelName = "mutualInformationKraskov";
+            code += std::string(reinterpret_cast<const char*>(MutualInformationKraskov_cu), MutualInformationKraskov_cu_len);
+        }
 
         nvrtcProgram prog;
         checkNvrtcResult(nvrtcCreateProgram(
-                &prog, code.c_str(), "MutualInformationKraskov.cu", 0, nullptr, nullptr), "Error in nvrtcCreateProgram: ");
+                &prog, code.c_str(), sourceFileName, 0, nullptr, nullptr), "Error in nvrtcCreateProgram: ");
         auto retVal = nvrtcCompileProgram(prog, 0, nullptr);
         if (retVal == NVRTC_ERROR_COMPILATION) {
             size_t logSize = 0;
@@ -129,11 +170,12 @@ torch::Tensor mutualInformationKraskovCuda(torch::Tensor referenceTensor, torch:
         }
         kernelCache = new KernelCache;
         kernelCache->preprocessorDefines = preprocessorDefines;
+        kernelCache->correlationMeasureType = correlationMeasureType;
 
         checkCUresult(g_cudaDeviceApiFunctionTable.cuModuleLoadDataEx(
                 &kernelCache->cumodule, ptx, 0, nullptr, nullptr), "Error in cuModuleLoadDataEx: ");
         checkCUresult(g_cudaDeviceApiFunctionTable.cuModuleGetFunction(
-                &kernelCache->kernel, kernelCache->cumodule, "mutualInformationKraskov"), "Error in cuModuleGetFunction: ");
+                &kernelCache->kernel, kernelCache->cumodule, kernelName), "Error in cuModuleGetFunction: ");
         delete[] ptx;
     }
 
@@ -173,17 +215,33 @@ torch::Tensor mutualInformationKraskovCuda(torch::Tensor referenceTensor, torch:
     auto batchSize = uint32_t(M);
     if (batchCount == 1) {
         auto batchOffset = uint32_t(0);
-        void* kernelParameters[] = {
-                &referenceArray, &queryArray, &miArray, &referenceStride, &queryStride, &batchOffset, &batchSize
-        };
-        checkCUresult(g_cudaDeviceApiFunctionTable.cuLaunchKernel(
-                kernelCache->kernel, iceil(int(M), BLOCK_SIZE), 1, 1, //< Grid size.
-                BLOCK_SIZE, 1, 1, //< Block size.
-                0, //< Dynamic shared memory size.
-                stream,
-                kernelParameters, //< Kernel parameters.
-                nullptr
-        ), "Error in cuLaunchKernel: "); //< Extra (empty).
+        if (correlationMeasureType == CorrelationMeasureType::MUTUAL_INFORMATION_BINNED) {
+            std::cout << "r: " << referenceMin << ", " << referenceMax << ", " << queryMin << ", " << queryMax << std::endl;
+            void* kernelParameters[] = {
+                    &referenceArray, &queryArray, &miArray, &referenceStride, &queryStride, &batchOffset, &batchSize,
+                    &referenceMin, &referenceMax, &queryMin, &queryMax
+            };
+            checkCUresult(g_cudaDeviceApiFunctionTable.cuLaunchKernel(
+                    kernelCache->kernel, iceil(int(M), BLOCK_SIZE), 1, 1, //< Grid size.
+                    BLOCK_SIZE, 1, 1, //< Block size.
+                    0, //< Dynamic shared memory size.
+                    stream,
+                    kernelParameters, //< Kernel parameters.
+                    nullptr
+            ), "Error in cuLaunchKernel: "); //< Extra (empty).
+        } else {
+            void* kernelParameters[] = {
+                    &referenceArray, &queryArray, &miArray, &referenceStride, &queryStride, &batchOffset, &batchSize
+            };
+            checkCUresult(g_cudaDeviceApiFunctionTable.cuLaunchKernel(
+                    kernelCache->kernel, iceil(int(M), BLOCK_SIZE), 1, 1, //< Grid size.
+                    BLOCK_SIZE, 1, 1, //< Block size.
+                    0, //< Dynamic shared memory size.
+                    stream,
+                    kernelParameters, //< Kernel parameters.
+                    nullptr
+            ), "Error in cuLaunchKernel: "); //< Extra (empty).
+        }
     } else {
         auto batchSizeLocal = uiceil(uint32_t(M), batchCount);
         for (uint32_t batchIdx = 0; batchIdx < batchCount; batchIdx++) {
@@ -191,17 +249,32 @@ torch::Tensor mutualInformationKraskovCuda(torch::Tensor referenceTensor, torch:
             if (batchOffset + batchSizeLocal > uint32_t(M)) {
                 batchSizeLocal = uint32_t(M) - batchSizeLocal;
             }
-            void* kernelParameters[] = {
-                    &referenceArray, &queryArray, &miArray, &referenceStride, &queryStride, &batchOffset, &batchSize
-            };
-            checkCUresult(g_cudaDeviceApiFunctionTable.cuLaunchKernel(
-                    kernelCache->kernel, iceil(int(batchSizeLocal), BLOCK_SIZE), 1, 1, //< Grid size.
-                    BLOCK_SIZE, 1, 1, //< Block size.
-                    0, //< Dynamic shared memory size.
-                    stream,
-                    kernelParameters, //< Kernel parameters.
-                    nullptr
-            ), "Error in cuLaunchKernel: "); //< Extra (empty).
+            if (correlationMeasureType == CorrelationMeasureType::MUTUAL_INFORMATION_BINNED) {
+                void* kernelParameters[] = {
+                        &referenceArray, &queryArray, &miArray, &referenceStride, &queryStride, &batchOffset, &batchSize,
+                        &referenceMin, &referenceMax, &queryMin, &queryMax
+                };
+                checkCUresult(g_cudaDeviceApiFunctionTable.cuLaunchKernel(
+                        kernelCache->kernel, iceil(int(batchSizeLocal), BLOCK_SIZE), 1, 1, //< Grid size.
+                        BLOCK_SIZE, 1, 1, //< Block size.
+                        0, //< Dynamic shared memory size.
+                        stream,
+                        kernelParameters, //< Kernel parameters.
+                        nullptr
+                ), "Error in cuLaunchKernel: "); //< Extra (empty).
+            } else {
+                void* kernelParameters[] = {
+                        &referenceArray, &queryArray, &miArray, &referenceStride, &queryStride, &batchOffset, &batchSize
+                };
+                checkCUresult(g_cudaDeviceApiFunctionTable.cuLaunchKernel(
+                        kernelCache->kernel, iceil(int(batchSizeLocal), BLOCK_SIZE), 1, 1, //< Grid size.
+                        BLOCK_SIZE, 1, 1, //< Block size.
+                        0, //< Dynamic shared memory size.
+                        stream,
+                        kernelParameters, //< Kernel parameters.
+                        nullptr
+                ), "Error in cuLaunchKernel: "); //< Extra (empty).
+            }
         }
     }
 

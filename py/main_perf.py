@@ -45,15 +45,70 @@ if __name__ == '__main__':
     reference_tensor_cuda = reference_tensor_cpu.to(cuda_device)
     query_tensor_cuda = query_tensor_cpu.to(cuda_device)
 
-    # First run with CUDA to make sure the kernels are compiled.
-    output_tensor_cuda = pycoriander.mutual_information_kraskov(reference_tensor_cuda, query_tensor_cuda, 3)
+
+    start_time = time.time()
+    output_tensor_cpu = pycoriander.pearson_correlation(reference_tensor_cpu, query_tensor_cpu)
+    print(f'Time OpenMP (Pearson): {time.time() - start_time}')
+
+    # First run without measuring time to make sure the kernels are compiled.
+    output_tensor_cuda = pycoriander.pearson_correlation(reference_tensor_cuda, query_tensor_cuda)
     torch.cuda.synchronize(cuda_device)
+    start_time = time.time()
+    output_tensor_cuda = pycoriander.pearson_correlation(reference_tensor_cuda, query_tensor_cuda)
+    torch.cuda.synchronize(cuda_device)
+    print(f'Time CUDA (Pearson): {time.time() - start_time}')
+
+
+    start_time = time.time()
+    output_tensor_cpu = pycoriander.spearman_rank_correlation(reference_tensor_cpu, query_tensor_cpu)
+    print(f'Time OpenMP (Spearman): {time.time() - start_time}')
+
+    # First run without measuring time to make sure the kernels are compiled.
+    output_tensor_cuda = pycoriander.spearman_rank_correlation(reference_tensor_cuda, query_tensor_cuda)
+    torch.cuda.synchronize(cuda_device)
+    start_time = time.time()
+    output_tensor_cuda = pycoriander.spearman_rank_correlation(reference_tensor_cuda, query_tensor_cuda)
+    torch.cuda.synchronize(cuda_device)
+    print(f'Time CUDA (Spearman): {time.time() - start_time}')
+
+
+    start_time = time.time()
+    output_tensor_cpu = pycoriander.kendall_rank_correlation(reference_tensor_cpu, query_tensor_cpu)
+    print(f'Time OpenMP (Kendall): {time.time() - start_time}')
+
+    # First run without measuring time to make sure the kernels are compiled.
+    output_tensor_cuda = pycoriander.kendall_rank_correlation(reference_tensor_cuda, query_tensor_cuda)
+    torch.cuda.synchronize(cuda_device)
+    start_time = time.time()
+    output_tensor_cuda = pycoriander.kendall_rank_correlation(reference_tensor_cuda, query_tensor_cuda)
+    torch.cuda.synchronize(cuda_device)
+    print(f'Time CUDA (Kendall): {time.time() - start_time}')
+
+
+    start_time = time.time()
+    output_tensor_cpu = pycoriander.mutual_information_binned(
+            reference_tensor_cpu, query_tensor_cpu, 80, 0.0, 1.0, 0.0, 1.0)
+    print(f'Time OpenMP (MI binned): {time.time() - start_time}')
+
+    # First run without measuring time to make sure the kernels are compiled.
+    output_tensor_cuda = pycoriander.mutual_information_binned(
+            reference_tensor_cuda, query_tensor_cuda, 80, 0.0, 1.0, 0.0, 1.0)
+    torch.cuda.synchronize(cuda_device)
+    start_time = time.time()
+    output_tensor_cuda = pycoriander.mutual_information_binned(
+            reference_tensor_cuda, query_tensor_cuda, 80, 0.0, 1.0, 0.0, 1.0)
+    torch.cuda.synchronize(cuda_device)
+    print(f'Time CUDA (MI binned): {time.time() - start_time}')
+
 
     start_time = time.time()
     output_tensor_cpu = pycoriander.mutual_information_kraskov(reference_tensor_cpu, query_tensor_cpu, 3)
-    print(f'Time OpenMP: {time.time() - start_time}')
+    print(f'Time OpenMP (MI Kraskov): {time.time() - start_time}')
 
+    # First run without measuring time to make sure the kernels are compiled.
+    output_tensor_cuda = pycoriander.mutual_information_kraskov(reference_tensor_cuda, query_tensor_cuda, 3)
+    torch.cuda.synchronize(cuda_device)
     start_time = time.time()
     output_tensor_cuda = pycoriander.mutual_information_kraskov(reference_tensor_cuda, query_tensor_cuda, 3)
     torch.cuda.synchronize(cuda_device)
-    print(f'Time CUDA: {time.time() - start_time}')
+    print(f'Time CUDA (MI Kraskov): {time.time() - start_time}')

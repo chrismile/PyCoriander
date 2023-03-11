@@ -26,16 +26,11 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef PYCORIANDER_MUTUALINFORMATIONCPU_HPP
-#define PYCORIANDER_MUTUALINFORMATIONCPU_HPP
+#ifndef PYCORIANDER_CORRELATIONDEFINES_HPP
+#define PYCORIANDER_CORRELATIONDEFINES_HPP
 
-#include <torch/script.h>
-#include <torch/types.h>
-#include <torch/extension.h>
+enum class CorrelationMeasureType {
+    PEARSON, SPEARMAN, KENDALL, MUTUAL_INFORMATION_BINNED, MUTUAL_INFORMATION_KRASKOV
+};
 
-void pycorianderCleanup();
-torch::Tensor mutualInformationKraskov(torch::Tensor referenceTensor, torch::Tensor queryTensor, int64_t k);
-torch::Tensor mutualInformationKraskovCpu(torch::Tensor referenceTensor, torch::Tensor queryTensor, int64_t k);
-torch::Tensor mutualInformationKraskovCuda(torch::Tensor referenceTensor, torch::Tensor queryTensor, int64_t k);
-
-#endif //PYCORIANDER_MUTUALINFORMATIONCPU_HPP
+#endif //PYCORIANDER_CORRELATIONDEFINES_HPP

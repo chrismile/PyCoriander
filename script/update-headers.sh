@@ -31,5 +31,9 @@ set -euo pipefail
 SCRIPTPATH="$( cd "$(dirname "$0")" ; pwd -P )"
 
 pushd "$SCRIPTPATH/../src" >/dev/null
+xxd -i PearsonCorrelation.cu > PearsonCorrelationHeader.hpp
+xxd -i SpearmanRankCorrelation.cu > SpearmanRankCorrelationHeader.hpp
+xxd -i KendallRankCorrelation.cu > KendallRankCorrelationHeader.hpp
+xxd -i MutualInformationBinned.cu > MutualInformationBinnedHeader.hpp
 xxd -i MutualInformationKraskov.cu > MutualInformationKraskovHeader.hpp
 popd >/dev/null
