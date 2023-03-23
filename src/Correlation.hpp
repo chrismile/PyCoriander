@@ -30,6 +30,7 @@
 #define PYCORIANDER_CORRELATION_HPP
 
 #include <vector>
+#include <cstddef>
 
 template<class T>
 inline float computePearson1(
