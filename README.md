@@ -14,7 +14,7 @@ Phys. Rev. E, 69:066138, June 2004, https://journals.aps.org/pre/abstract/10.110
 
 ## Install with setuptools
 
-To install the library as a Python module, the following command must be called in the library directory.
+To install the library as a Python module, the following command must be called in the repository directory.
 
 ```sh
 python setup.py install

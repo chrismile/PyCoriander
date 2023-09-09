@@ -37,29 +37,32 @@
  * - digamma = d/dx ln(Gamma(x)) = Gamma'(x) / Gamma(x) (https://en.wikipedia.org/wiki/Digamma_function)
  * - Lanczos approximation: https://www.rskey.org/CMS/index.php/the-library/11
  * - Weights: https://www.rskey.org/CMS/index.php/the-library/11
- * - GLSL implementation by: https://www.shadertoy.com/view/3lfGD7
+ *
+ * This function could be extended for values < 1 by:
+ * - float z = 1 - iz;
+ * - if (iz < 1) return digammaValue - M_PI * cosf(M_PI * iz) / sinf(M_PI * iz);
  */
-#define M_PI_FLT 3.14159265358979323846f
-#define LG 5.65f
-#define P0 2.50662827563479526904f
-#define P1 225.525584619175212544f
+#define G (5.15f)
+#define P0 (2.50662827563479526904f)
+#define P1 (225.525584619175212544f)
 #define P2 (-268.295973841304927459f)
-#define P3 80.9030806934622512966f
+#define P3 (80.9030806934622512966f)
 #define P4 (-5.00757863970517583837f)
-#define P5 0.0114684895434781459556f
-inline float digamma(uint32_t ix) {
-    if (ix == 1u) {
+#define P5 (0.0114684895434781459556f)
+inline float digamma(uint32_t iz) {
+    if (iz == 1u) {
         return -0.57721566490153287f;
     }
-    auto x = float(ix);
-    float xx = x > 1.0f ? x : 1.0f - x;
-    float sum1 =
-            P1 / ((xx + 1.0f) * (xx + 1.0f)) + P2/((xx + 2.0f) * (xx + 2.0f)) + P3 / ((xx + 3.0f) * (xx + 3.0f))
-            + P4 / ((xx + 4.0f) * (xx + 4.0f)) + P5 / ((xx + 5.0f) * (xx + 5.0f));
-    float sum2 = P0 + P1 / (xx + 1.0f) + P2 / (xx + 2.0f) + P3/(xx + 3.0f) + P4 / (xx + 4.0f) + P5 / (xx + 5.0f);
-    float xh = xx + LG;
-    float y = std::log(xh) - (xh + (LG - 0.5f) * xx) / (xx * xh) - sum1 / sum2;
-    return x > 1.0f ? y : y - M_PI_FLT * std::cos(M_PI_FLT * x) / std::sin(M_PI_FLT * x);
+    float z = float(iz);
+    float zh = z - 0.5f;
+    float z1 = z + 1.0f;
+    float z2 = z + 2.0f;
+    float z3 = z + 3.0f;
+    float z4 = z + 4.0f;
+    float ZP = P0 + P1 / z + P2 / z1 + P3 / z2 + P4 / z3 + P5 / z4;
+    float dZP = P1 / (z * z) + P2 / (z1 * z1) + P3 / (z2 * z2) + P4 / (z3 * z3) + P5 / (z4 * z4);
+    float digammaValue = logf(zh + G) + zh / (zh + G) - dZP / ZP - 1.0f;
+    return digammaValue;
 }
 
 #endif //PYCORIANDER_DIGAMMA_HPP
