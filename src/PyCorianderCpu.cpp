@@ -145,6 +145,7 @@ torch::Tensor computeCorrelationCpu(
     auto queryStride = Mq == 1 ? 0 : uint32_t(queryTensor.stride(0));
 
     if (correlationMeasureType == CorrelationMeasureType::PEARSON) {
+        std::cerr << "BEFORE" << std::endl;
 #ifdef _OPENMP
         #pragma omp parallel default(none) shared(M, N, referenceData, referenceStride, queryData, queryStride, outputAccessor)
 #endif
@@ -159,6 +160,7 @@ torch::Tensor computeCorrelationCpu(
                 outputAccessor[batchIdx] = miValue;
             }
         }
+        std::cerr << "AFTER" << std::endl;
     } else if (correlationMeasureType == CorrelationMeasureType::SPEARMAN) {
 #ifdef _OPENMP
         #pragma omp parallel default(none) shared(M, N, referenceData, referenceStride, queryData, queryStride, outputAccessor)
